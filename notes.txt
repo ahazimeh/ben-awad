@@ -1,0 +1,19 @@
+npm add -D @types/node typescript
+npm add -D ts-node
+npm run watch
+npm add -D nodemon //recompile code on save
+
+
+so we run npm run watch and npm run dev
+
+npm add @mikro-orm/cli @mikro-orm/core @mikro-orm/migrations @mikro-orm/postgresql pg
+//the above command is to setup mikro-orm
+
+create user myuser with password 'password';
+Create database mydb with owner myuser ENCODING='UTF-8' LC_COLLATE='en_US.UTF-8' LC_CTYPE='en_US.UTF-8';
+
+//in the installation & Usage you need to add some code in package.json for MIKRORM and make the config file
+
+
+npm add express apollo-server-express graphql type-graphql
+npm add -D @types/express
