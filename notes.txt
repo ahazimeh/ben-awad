@@ -1,5 +1,7 @@
-npm add -D @types/node typescript
+npm add -D @types/node typescript 
+//types for node gives us the built in node fns
 npm add -D ts-node
+npx tsconfig.json//configuration for node created by Ben which has the setting he likes for node
 npm run watch
 npm add -D nodemon //recompile code on save
 
@@ -17,3 +19,7 @@ Create database mydb with owner myuser ENCODING='UTF-8' LC_COLLATE='en_US.UTF-8'
 
 npm add express apollo-server-express graphql type-graphql
 npm add -D @types/express
+
+npm add reflect-metadata //step to set typegraphql
+
+npm add argon2 //like bcrypt
