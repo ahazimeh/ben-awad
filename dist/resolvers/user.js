@@ -59,14 +59,51 @@ UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
 let UserResolver = class UserResolver {
-    async register(options, ctx) {
-        const hashedPassword = await argon2_1.default.hash(options.password);
-        const user = ctx.em.create(User_1.User, { username: options.username, password: hashedPassword });
-        await ctx.em.persistAndFlush(user);
+    async me({ req, em }) {
+        if (!req.session.userId) {
+            return null;
+        }
+        const user = await em.findOne(User_1.User, { id: req.session.userId });
         return user;
     }
-    async login(options, ctx) {
-        const user = await ctx.em.findOne(User_1.User, { username: options.username });
+    async register(options, { em, req }) {
+        if (options.username.length <= 2) {
+            return {
+                errors: [{
+                        field: 'username',
+                        message: 'length must be greater than 2',
+                    }]
+            };
+        }
+        if (options.password.length <= 2) {
+            return {
+                errors: [{
+                        field: 'password',
+                        message: 'length must be greater than 2',
+                    }]
+            };
+        }
+        const hashedPassword = await argon2_1.default.hash(options.password);
+        const user = em.create(User_1.User, { username: options.username, password: hashedPassword });
+        try {
+            await em.persistAndFlush(user);
+        }
+        catch (err) {
+            if (err.code === '23505') {
+                return {
+                    errors: [{
+                            field: "username",
+                            message: "usermae already taken"
+                        }]
+                };
+            }
+            console.log('message', err);
+        }
+        req.session.userId = user.id;
+        return { user };
+    }
+    async login(options, { em, req }) {
+        const user = await em.findOne(User_1.User, { username: options.username });
         if (!user)
             return {
                 errors: [{
@@ -85,11 +122,19 @@ let UserResolver = class UserResolver {
                 ]
             };
         }
+        req.session.userId = user.id;
         return { user };
     }
 };
 __decorate([
-    type_graphql_1.Mutation(() => User_1.User),
+    type_graphql_1.Query(() => User_1.User, { nullable: true }),
+    __param(0, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "me", null);
+__decorate([
+    type_graphql_1.Mutation(() => UserResponse),
     __param(0, type_graphql_1.Arg('options', () => UsernamePasswordInput)),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),

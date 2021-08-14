@@ -31,23 +31,73 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-    @Mutation(() => User)
+    @Query(() => User, {nullable:true})
+    async me (
+        @Ctx() {req, em}: MyContext
+    ) {
+        //you are not logged in
+        if(!req.session.userId) {
+            return null;
+        }
+        const user = await em.findOne(User, {id: req.session.userId});
+        return user;
+    }
+
+    @Mutation(() => UserResponse)
     async register(
         @Arg('options', () => UsernamePasswordInput) options: UsernamePasswordInput,
-        @Ctx() ctx: MyContext
-    ) {
+        @Ctx() {em, req}: MyContext
+    ):Promise<UserResponse> {
+
+        if(options.username.length <= 2) {
+            return {
+                errors:[{
+                    field: 'username',
+                    message:'length must be greater than 2',
+                }]
+            }
+        }
+
+        if(options.password.length <= 2) {
+            return {
+                errors:[{
+                    field: 'password',
+                    message:'length must be greater than 2',
+                }]
+            }
+        }
+
         const hashedPassword = await argon2.hash(options.password)
-        const user = ctx.em.create(User, {username: options.username, password: hashedPassword})
-        await ctx.em.persistAndFlush(user);
-        return user;
+        const user = em.create(User, {username: options.username, password: hashedPassword})
+        try{
+            await em.persistAndFlush(user);
+        }
+        catch(err){
+            //duplicate username error
+            if(err.code === '23505') { //|| err.detail.includes("already exists")) {
+                return {
+                    errors: [{
+                    field: "username",
+                    message: "usermae already taken"
+                    }]
+                }
+            }
+            console.log('message',err)
+        }
+
+        //store user id session
+        //this will set a cookie on the user
+        //keep them logged in
+        req.session.userId = user.id;
+        return {user};
     }
 
     @Mutation(() => UserResponse)
     async login(
         @Arg('options', () => UsernamePasswordInput) options: UsernamePasswordInput,
-        @Ctx() ctx: MyContext
+        @Ctx() {em, req}: MyContext
     ): Promise<UserResponse> {
-        const user = await ctx.em.findOne(User, {username: options.username});
+        const user = await em.findOne(User, {username: options.username});
         if(!user)
         return {
             errors: [{
@@ -66,6 +116,7 @@ export class UserResolver {
                 ]
             }
         }
+        req.session.userId = user.id;
         return {user} ;
     }
 }
